@@ -13,7 +13,7 @@ import sys
 
 
 
-class EasyTrack(QThread) :
+class CourseTrack(QThread) :
 
     progress_signal = pyqtSignal(str)
 

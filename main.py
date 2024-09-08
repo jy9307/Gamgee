@@ -3,10 +3,10 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QCheckBox,
     QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QDialog, QFrame
 )
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFontDatabase, QFont
-from easytrack import EasyTrack
+from coursetrack import CourseTrack
 import json
 
 # JSON 파일을 열고 파싱하기
@@ -69,7 +69,8 @@ class MyApp(QWidget):
         self.save_account = save_account
 
         # 윈도우 기본 설정
-        self.setWindowTitle('EasyTrack v0.1-beta')
+        self.setWindowTitle('Gamgee v0.1-beta')
+        
         self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
 
@@ -219,8 +220,8 @@ class MyApp(QWidget):
         pw_input = self.pw_input.text()
         course_name = self.course_input.text()
 
-        # EasyTrack 스레드 생성 및 시작
-        self.tracker = EasyTrack(id_input, pw_input, course_name)
+        # CourseTrack 스레드 생성 및 시작
+        self.tracker = CourseTrack(id_input, pw_input, course_name)
         self.tracker.progress_signal.connect(self.update_status)  # 시그널 연결
 
         # ProgressDialog 설정
@@ -263,6 +264,8 @@ class MyApp(QWidget):
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
+
+    app.setWindowIcon(QIcon('gamgee_icon.ico')) 
     
     # 폰트 파일을 애플리케이션에 추가
     font_id = QFontDatabase.addApplicationFont("./NanumSquareR.ttf")
