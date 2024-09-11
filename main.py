@@ -114,7 +114,7 @@ class MyApp(QWidget):
         self.save_account = save_account
 
         # 윈도우 기본 설정
-        self.setWindowTitle('Gamgee v0.1-beta')
+        self.setWindowTitle('Gamgee v0.2-beta')
 
         self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
