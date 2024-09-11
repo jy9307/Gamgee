@@ -29,6 +29,10 @@ class CourseTrack(QThread) :
         # 브라우저 윈도우 사이즈
         options.add_argument('window-size=1920x1080')
 
+        # 자동화 메시지 제거 설정
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
         # 사람처럼 보이게 하는 옵션들
         options.add_argument("disable-gpu")   # 가속 사용 x
         options.add_argument("lang=ko_KR")    # 가짜 플러그인 탑재
@@ -37,13 +41,16 @@ class CourseTrack(QThread) :
         # 드라이버 위치 경로 입력
         self.driver = webdriver.Chrome(options=options)
 
+        # navigator.webdriver 속성 삭제
+        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
 ##------------- Tools --------------
 
     def pass_quiz(self) :
-        quiz_btn = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="lxPlayerIframe"]/div[2]')))
+        quiz_btn = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="lxPlayerIframe"]/div[2]')))
         if quiz_btn :
             quiz_btn.click()
-        next_btn = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="next-btn"]')))
+        next_btn = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="next-btn"]')))
         next_btn.click()
 
     def check_running(self):
@@ -145,8 +152,9 @@ class CourseTrack(QThread) :
         while 1 :
             #음소거 우선    
             try :
-                video_player = self.driver.find_element(By.XPATH, '//*[@id="lx-player"]/div[9]')
-
+                video_player = WebDriverWait(self.driver, 3).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]'))
+                )
                 # JavaScript로 mouseover 이벤트 트리거
                 actions = ActionChains(self.driver)
                 actions.move_to_element(video_player).perform()
@@ -157,13 +165,11 @@ class CourseTrack(QThread) :
 
             except :
                 self.pass_quiz()
+                continue
 
             try :
 
                 # XPath를 사용하여 비디오 플레이어 요소 찾기
-
-                
-                
 
                 # ActionChains를 사용하여 마우스를 비디오 플레이어 위로 이동        
                 self.progress_signal.emit("영상 길이 찾아내는 중...")
@@ -202,8 +208,8 @@ class CourseTrack(QThread) :
                 element.click()
                 self.progress_signal.emit("다음 강의 시작!")
 
-            except :
-                print("오류가 발생했습니다..")
+            except Exception as e :
+                print(f"오류 : {e}")
 
     def run(self):
         # 스레드에서 로그인, 강의 로드, 강의 처리 메서드 실행
