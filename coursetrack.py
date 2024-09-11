@@ -90,16 +90,17 @@ class CourseTrack(QThread) :
 
         # 요소 중에서 텍스트를 비교하여 원하는 요소 찾기
         for element in course_elements:
+        
             if target_text in element.text:
                 target_element = element
                 break
-
         if target_element:
             self.progress_signal.emit("강의를 찾았습니다!")
 
             # 2. 해당 요소 하위의 '이어보기' 버튼 클릭
             parent_li = target_element.find_element(By.XPATH, "./../../..")  # li 요소로 거슬러 올라가기
-            continue_button = parent_li.find_element(By.XPATH, ".//a[contains(text(), '이어보기')]")
+            continue_button = parent_li.find_element(By.XPATH, ".//a[contains(text(), '이어보기') or contains(text(), '학습하기')]")
+
             
             # '이어보기' 버튼 클릭
             continue_button.click()
@@ -142,18 +143,27 @@ class CourseTrack(QThread) :
             element.click()
 
         while 1 :
-            if not self.check_running(): return
-            # 다음 페이지의 시작이 2페이지짜리 
-            mute_btn = WebDriverWait(self.driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')))
-            mute_btn.click()
-
+            #음소거 우선    
             try :
-                self.pass_quiz()
+                video_player = self.driver.find_element(By.XPATH, '//*[@id="lx-player"]/div[9]')
+
+                # JavaScript로 mouseover 이벤트 트리거
+                actions = ActionChains(self.driver)
+                actions.move_to_element(video_player).perform()
+
+                mute_btn = WebDriverWait(self.driver, 3).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')))
+                mute_btn.click()
 
             except :
+                self.pass_quiz()
+
+            try :
+
                 # XPath를 사용하여 비디오 플레이어 요소 찾기
-                video_player = self.driver.find_element(By.XPATH, '//*[@id="lx-player"]')
+
+                
+                
 
                 # ActionChains를 사용하여 마우스를 비디오 플레이어 위로 이동        
                 self.progress_signal.emit("영상 길이 찾아내는 중...")
@@ -163,6 +173,7 @@ class CourseTrack(QThread) :
                 total_time=''
 
                 while (total_time == '') or (total_time == '-:-') or (current_time == '') or (current_time == '-:-'):
+
                     actions = ActionChains(self.driver)
                     actions.move_to_element(video_player).perform()
 
@@ -190,6 +201,9 @@ class CourseTrack(QThread) :
                 )
                 element.click()
                 self.progress_signal.emit("다음 강의 시작!")
+
+            except :
+                print("오류가 발생했습니다..")
 
     def run(self):
         # 스레드에서 로그인, 강의 로드, 강의 처리 메서드 실행
