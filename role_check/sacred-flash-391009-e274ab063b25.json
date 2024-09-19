@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "sacred-flash-391009",
+  "private_key_id": "e274ab063b25c1ed40a0b5272e8329323cdab352",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCY524sxW5owgQ0\nR1Iqpo0akgVBTADrr4qE0ztuicrRneqxKgmXqIpbFOyl2DoHPAKAqzRPhWJl5NRc\nc4T9xJ8cOqKfeJP9XICNcVc3qN6yCOatB7ctXM/kPuAl7fupdAMzE/4HKiaUxjA8\nyTR7gLR4aZG5K+6WyNRPR2koskHvsmgWBeVlW6eY4hFFar6u5VAyrHacvyyAUbvm\n/niWSEy7++4ifE5HigqsNw9NDL/1B1frAljBbpxl5iv9ptNP/Qe1PVgfuc/lifBd\nbeARNutHczSqM/mVx5FQRTYQmyFveY87ESO8GULavANi1rQKnkkQ98ebFvOTC3kC\n6GoJfsevAgMBAAECggEAFgIRqJ4OQ0PRyRiO6hao7q8f1IM1Crdsj6u7vTBWIg/B\nzRhI4yxeJbgAS+qwh4QKtCxwThXb0OC79EaoWMJpSG3kJGH9oxUiZ7ltnVRQIX4I\nfdVDd2MJhUfLiYoUlBJft4VkJfHaNcXFAarQRAqFb2N6lxWMtOVZMcQMjdACj5Z8\nPjt2Nn/56pTpvtgOUzIwAKQyhb+FqLLK3/jYgnLW/NGiWTCKSL46jYMoDDZk8Aqp\nmhAyP8fDIUxXXWfOhfqKlQhNCJB/BRhGogpy8jMTN1BnUR2Un7/F5lfhkQLCPTqc\nkmLhEv7HZXaNG1JeGhV9/0iAZCDW7hD3bpTMhiV+0QKBgQDQiuubrHF/YJVHZfyy\nAlTW8MKNg6OHJv2ERA3CFtKE6SRqxfHTbeLJUB/3pWaSiAlnCeeHYAl4kn2o9F8B\na8QIyHgm8ZmEzQaw8ir2+J2AlZCRIdQOCDk9c8Lf4i0G6tDEkLUOXdIljbh2veNJ\nyR9HRh1ItV6wNkRNlU/src7muQKBgQC7syrig76kcjELOsHZdNWlHk1eozdKDFL0\nET1k20LUSiCDCmUY0Tn1n1kUJNr8Q/8CT1IeQ+UaBu6WJhjmHZ6PnPxIMpAB/rkL\nTdBG18qUuOW+HVeYeOSAsQL6E0hR08zPajEAcpvUwJlr3TlJMEYmKhjXn7/xG3wl\nAiyVRNXtpwKBgEPdIWUMjfbEqG+OqdgH2DIGMVm5/+pIbvGu78c8hA+KizZP6i1C\nsi2O7Ig7hBClQmIMoBK21v4stcXYmF4vAqFVE3yg3LORwN6uP/sU1rR0d5IzLv3O\nAUqVNFKFGOAKZBvDd5gQQgXEg8Xob2GgmJQqJfd2RjUTw9B3iYXc3drJAoGAEBiJ\nMOuDSa7RLdlYDkHKoGI82ES+1QbBhlSEI0X6MSI6L4KQsNQgWEPV67hNXxylnZkX\nvais2NKHWzDhKbqYglBAAiDz4HfrfmCp36lZoe9JJEh33odfcPm8+5zzsrCq+45r\nrVImstPhVDKgWvpcyaEKiFMWrqJgvvu0vwgsIDkCgYEAxuQMnzzQ/nbWhugdnpRI\nbRHIXtJVzJ/3r3h3dGkPZ8DvXDNlLr6LUYs9ll7tnCV9uXEHW9sKYyv1Zu/EkYs0\neuOleCLlfwJDVs3jfY1KmayiM/AVuMvY/qd4ICHanp80NFBFYnNvJ1w4t9ZYIW0V\njFOvsaFXZwxX7Zl4xvn7cJA=\n-----END PRIVATE KEY-----\n",
+  "client_email": "school-roles@sacred-flash-391009.iam.gserviceaccount.com",
+  "client_id": "109475001042148408264",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/school-roles%40sacred-flash-391009.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

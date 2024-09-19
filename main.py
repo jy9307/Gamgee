@@ -115,7 +115,6 @@ class MyApp(QWidget):
 
         # 윈도우 기본 설정
         self.setWindowTitle('Gamgee v0.2-beta')
-
         self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
         # 레이아웃 설정
