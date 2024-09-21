@@ -1,23 +1,33 @@
+import sys
+import warnings  
+
+## COM 초기화 에러 해결
+
+warnings.simplefilter("ignore", UserWarning) 
+sys.coinit_flags = 2 # STA
+
 from pywinauto import application
 from pywinauto.keyboard import send_keys
 import pandas as pd
 import pyautogui, random, pyperclip, time
 from PyQt5.QtCore import QThread, pyqtSignal
 
-class ProjectNeis(QThread) :
 
-    def __init__(self) -> None:
+class ProjectNeis() :
+
+    def __init__(self, class_info) -> None:
         super().__init__()
-        self.class_info = pd.read_csv("학생정보.csv", encoding="cp949")
-        self.app = application(backend='uia').connect(title_re =".*Microsoft.*Edge.*")
-        self.neis = self.app["4세대 지능형 나이스 시스템 외 페이지 1개 - 프로필 1 - Microsoft​ Edge', Chrome_WidgetWin_1"]
+        self.class_info = pd.read_csv(class_info, encoding="cp949")
+
+        # self.app = application(backend='uia').connect(title_re =".*Microsoft.*Edge.*")
+        # self.neis = self.app["4세대 지능형 나이스 시스템 외 페이지 1개 - 프로필 1 - Microsoft​ Edge', Chrome_WidgetWin_1"]
 
     def tabs(n) :
         for i in range(n):
             send_keys('{TAB}')
             time.sleep(1)
 
-    def  print_identifier(target):
+    def print_identifier(target):
         target = target
         target.print_control_identifiers()
 
@@ -232,6 +242,15 @@ class ProjectNeis(QThread) :
             for i in range(2) :
                 confirm_btn = self.neis['확인Button']
                 confirm_btn.click_input()
+
+    # def run(self):
+    #     # 스레드에서 로그인, 강의 로드, 강의 처리 메서드 실행
+    #     return
+
+    # def stop(self) :
+    #     self._is_running = False
+    #     self.driver.quit()
+    #     self.terminate()
 
 
 

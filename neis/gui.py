@@ -1,10 +1,12 @@
-import sys, os, shutil, json, subprocess, csv
+import sys, os, shutil, json, subprocess, csv, io
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QCheckBox, QFileDialog, QTableWidget, QTableWidgetItem, QAbstractItemView,
     QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QDialog, QFrame, QMessageBox
 )
 from PyQt5.QtCore import Qt
 from functools import partial
+from project_neis import ProjectNeis
+import pandas as pd
 
 #### ------- TOOLS
 
@@ -26,6 +28,10 @@ class NeisAssistantGUI(QWidget) :
 
         self.class_info_check = False
         self.save_class_info = save_class_info
+
+        self.initUI()
+    
+    def initUI(self) : 
 
         # 메인 레이아웃 설정
         main_layout = QVBoxLayout()
@@ -194,6 +200,8 @@ class NeisAssistantGUI(QWidget) :
 
             if not os.path.exists(destination_directory):
                 os.makedirs(destination_directory)
+
+            return destination_directory
         else :
             self.show_error_message_box(box_text="파일 경로가 올바르지 않습니다.",
                                         box_title="파일 경로 오류")
@@ -216,6 +224,8 @@ class NeisAssistantGUI(QWidget) :
                 print(f"파일이 성공적으로 {self.class_info_destination_path}로 복사되었습니다.")
             except Exception as e:
                 print(f"파일 복사 중 오류 발생: {e}")
+
+            self.project_neis = ProjectNeis(self.class_info_destination_path)
 
         
         self.class_info_check = True
@@ -387,6 +397,42 @@ class SubjectObs(QDialog) :
                     for column_index, cell_data in enumerate(row_data):
                         item = QTableWidgetItem(cell_data)
                         self.subject_obs_table.setItem(row_index - 1, column_index, item)
+
+    def subject_obs_auto_write(self) :
+
+            output = io.StringIO()
+            writer = csv.writer(output)
+            # 테이블의 열 수와 행 수 가져오기
+            row_count = self.subject_obs_table.rowCount()
+            column_count = self.subject_obs_table.columnCount()
+
+            # 헤더(첫 번째 행)를 저장
+            headers = []
+            for column in range(column_count):
+                header = self.subject_obs_table.horizontalHeaderItem(column)
+                if header is not None:
+                    headers.append(header.text())
+                else:
+                    headers.append(f"Column {column + 1}")
+            writer.writerow(headers)
+
+            # 테이블의 데이터를 행 단위로 저장
+            for row in range(row_count):
+                row_data = []
+                for column in range(column_count):
+                    item = self.subject_obs_table.item(row, column)
+                    if item is not None:
+                        row_data.append(item.text())
+                    else:
+                        row_data.append('')  # 빈 셀 처리
+                writer.writerow(row_data)
+            
+            # StringIO 내용을 pandas로 바로 읽어들임
+            output.seek(0)  # StringIO의 처음으로 포인터 이동
+            df = pd.read_csv(output)
+            
+            return df   
+
             
         
 class SubjectObsAgg(QDialog) :
