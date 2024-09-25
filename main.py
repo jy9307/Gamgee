@@ -1,14 +1,14 @@
-import sys
-import os
+import sys, os, json
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QGridLayout, QDialog, QHBoxLayout
+    QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QFrame, QSystemTrayIcon, QMenu, QAction,
+    QPushButton, QMessageBox, QGridLayout, QDialog, QHBoxLayout, QCheckBox
 )
 from PyQt5.QtGui import QPixmap, QFontDatabase, QFont, QIcon
 import firebase_admin
 from firebase_admin import credentials, firestore
-
 from functions.course_track import CourseTrackHome
+from functions.project_neis import ProjectNeisHome
 from filehandler import *
 
 # Firestore 초기화
@@ -16,9 +16,13 @@ cred = credentials.Certificate('gamgee-bed2b-e8385da2215e.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# 로그인 화면
 class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.load_account_settings()
+
         self.initUI()
 
     def initUI(self):
@@ -28,6 +32,7 @@ class LoginWindow(QWidget):
         self.label = QLabel(self)  # QLabel 생성
         pixmap = QPixmap('gamgee_title.png')  # 이미지 파일을 QPixmap으로 로드
         self.label.setPixmap(pixmap)  # QLabel에 QPixmap 설정
+        self.label.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.label)
         # 레이아웃
         account_layout = QGridLayout()
@@ -59,7 +64,53 @@ class LoginWindow(QWidget):
 
         main_layout.addLayout(account_layout)
 
+        # 계정 관련 설정 세팅
+        account_setting_layout = QHBoxLayout()
+
+        save_main_id_checkbox = QCheckBox('아이디 기억하기')
+        if self.save_account:
+            save_main_id_checkbox.setChecked(True)
+            self.id_input.setText(self.saved_id)
+        # 체크박스가 활성화되거나 비활성화될 때 이벤트 발생
+        save_main_id_checkbox.stateChanged.connect(self.checkbox_changed)
+
+        show_main_pw_checkbox = QCheckBox('비밀번호 보이기')
+        show_main_pw_checkbox.stateChanged.connect(self.toggle_password_visibility)
+
+        account_setting_layout.addWidget(save_main_id_checkbox)
+        account_setting_layout.addWidget(show_main_pw_checkbox)
+
+        main_layout.addLayout(account_setting_layout)
+
         self.setLayout(main_layout)
+
+    def load_account_settings(self):
+        try:
+            # JSON 파일 로드
+            json_path = load_data('settings.json')
+            with open(json_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("account_setting.json 파일을 찾을 수 없거나 형식이 잘못되었습니다.")
+            data = {}
+
+        self.saved_id = data.get("main_id", "")  # 'main_id'가 없으면 빈 문자열로 처리
+        self.save_account = data.get("main_save_account", False)  # 'main_save_account'가 없으면 False로 처리
+
+    def checkbox_changed(self, state):
+        data = load_setting()
+
+        data["main_id"] = self.id_input.text() if state == Qt.Checked else None
+        data["main_save_account"] = state == Qt.Checked
+
+        # 변경된 설정 저장
+        save_setting(data)
+
+    def toggle_password_visibility(self, state):
+        if state == Qt.Checked:
+            self.pw_input.setEchoMode(QLineEdit.Normal)
+        else:
+            self.pw_input.setEchoMode(QLineEdit.Password)
 
     # 로그인 처리 함수
     def login(self):
@@ -70,8 +121,7 @@ class LoginWindow(QWidget):
         user_ref = db.collection('users').document(user_id)
         user = user_ref.get()
 
-        if user.exists and user.to_dict().get('password') == password:
-            QMessageBox.information(self, 'Login', '로그인 성공!')
+        if user.exists and user.to_dict().get('pw') == password:
             self.openHomeScreen()  # 홈 화면 열기
         else:
             QMessageBox.warning(self, 'Login', 'ID 또는 비밀번호가 일치하지 않습니다.')
@@ -87,10 +137,11 @@ class LoginWindow(QWidget):
 
     # 홈 화면 열기
     def openHomeScreen(self):
-        self.home_screen = HomeScreen()
+        self.home_screen = HomeScreen(user_id=self.id_input.text())
         self.home_screen.show()
         self.close()
 
+# 회원가입 화면
 class SignInWindow(QDialog) :
 
     def __init__(self) :
@@ -167,25 +218,81 @@ class SignInWindow(QDialog) :
 # 로그인 후 홈 화면
 class HomeScreen(QWidget):
 
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__()
+        self.user_id = user_id
+
+        # 시스템 트레이 설정
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(QIcon('gamgee_icon.ico'))  # 트레이에 사용할 아이콘 설정
+        self.tray_icon.setVisible(True)
+
+        # 트레이 메뉴 설정
+        tray_menu = QMenu()
+
+        restore_action = QAction("복원", self)
+        restore_action.triggered.connect(self.showNormal)
+        tray_menu.addAction(restore_action)
+
+        quit_action = QAction("종료", self)
+        quit_action.triggered.connect(QApplication.quit)
+        tray_menu.addAction(quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle('Gamgee v0.3')
-        layout = QVBoxLayout()
 
-        self.label = QLabel('홈 화면')
-        self.course_track_btn = QPushButton('연수 자동 이수', self)
+        # 메인 레이아웃 (전체를 감싸는 레이아웃)
+        main_layout = QVBoxLayout()
+
+        # 환영 메시지 레이아웃
+        welcome_layout = QHBoxLayout()
+        self.label = QLabel(f'{self.user_id}님 환영합니다!')
+        # QLabel에 스타일 적용 (배경색, 글자색, 패딩 등)
+        self.label.setStyleSheet("""
+            QLabel {
+                background-color: #e0f7fa;  /* 연한 하늘색 배경 */
+                color: #006064;             /* 진한 색 텍스트 */
+                padding: 10px;              /* 텍스트 주위에 여백 */
+                border-radius: 5px;         /* 모서리 둥글게 */
+                font-size: 16px;            /* 글꼴 크기 */
+            }
+        """)
+        welcome_layout.addWidget(self.label)
+        main_layout.addLayout(welcome_layout)
+
+        # 구분선 추가
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        main_layout.addWidget(line)
+
+        # 버튼 레이아웃
+        button_layout = QHBoxLayout()  # 버튼들을 배열하기 위해 GridLayout 사용
+        self.course_track_btn = QPushButton('연수 도우미', self)
+        self.course_track_btn.setFixedSize(140, 100)
         self.course_track_btn.clicked.connect(self.course_track_run)
 
-        self.grade_input_button = QPushButton('나이스 성적 자동 입력', self)
+        self.grade_input_button = QPushButton('성적 도우미', self)
+        self.grade_input_button.setFixedSize(140, 100)
+        self.grade_input_button.clicked.connect(self.project_neis_run)
 
-        layout.addWidget(self.label)
-        layout.addWidget(self.course_track_btn)
-        layout.addWidget(self.grade_input_button)
+        self.dev_button = QPushButton('개발 중', self)
+        self.dev_button.setFixedSize(140, 100)
 
-        self.setLayout(layout)
+        # 버튼들을 GridLayout에 추가 (2행으로 정렬 가능)
+        button_layout.addWidget(self.course_track_btn)
+        button_layout.addWidget(self.grade_input_button)
+        button_layout.addWidget(self.dev_button)
+
+        # 메인 레이아웃에 환영 메시지 레이아웃과 버튼 레이아웃을 추가
+        main_layout.addLayout(button_layout)
+
+        # 최종 레이아웃 설정
+        self.setLayout(main_layout)
 
     def course_track_run(self) :
         self.hide()
@@ -193,6 +300,25 @@ class HomeScreen(QWidget):
         self.course_track_home.exec_()
 
         self.show()
+
+    def project_neis_run(self) :
+        self.hide()
+        self.project_neis_home = ProjectNeisHome(self)
+        self.project_neis_home.exec_()
+
+        self.show()
+
+    def closeEvent(self, event):
+        """창을 닫을 때 시스템 트레이로 최소화"""
+        if self.tray_icon.isVisible():
+            self.hide()  # 창을 숨김
+            self.tray_icon.showMessage(
+                "앱이 트레이로 최소화되었습니다.",
+                "앱을 다시 열려면 트레이 아이콘을 클릭하세요.",
+                QSystemTrayIcon.Information,
+                2000  # 알림이 2초 동안 표시됩니다.
+            )
+            event.ignore()  # 창이 닫히지 않도록 막음
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -205,7 +331,7 @@ if __name__ == '__main__':
 
     if font_id != -1:
         font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-        app.setFont(QFont(font_family, 12))
+        app.setFont(QFont(font_family, 10))
     else:
         print("폰트를 로드할 수 없습니다.")
     login_window = LoginWindow()

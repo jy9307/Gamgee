@@ -1,6 +1,7 @@
 {
-    "main_id" : null,
-    "main_save_account" : false,
-    "course_id": "jy9307",
-    "course_save_account": true
+    "main_id": "zxc",
+    "main_save_account": true,
+    "id": "jy9307",
+    "save_account": true,
+    "save_class_info": "C:\\Gamgee\\.user_data\\class_info.csv"
 }

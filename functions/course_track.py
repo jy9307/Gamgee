@@ -33,7 +33,7 @@ class CourseTrackHome(QDialog):
 
         # 레이아웃 설정
         main_layout = QVBoxLayout()
-        self.setWindowTitle('연수 자동 이수')
+        self.setWindowTitle('연수 이수 도우미')
 
         self.combo_label = QLabel('현재까지 본 프로그램은 <중앙교육연수원>의 연수만을 지원합니다.')
         self.combo_label.setStyleSheet("font-size: 12px;")
@@ -160,8 +160,14 @@ class CourseTrackHome(QDialog):
         # 메인 레이아웃 설정
         self.setLayout(main_layout)
 
+    def toggle_password_visibility(self, state):
+        if state == Qt.Checked:
+            self.pw_input.setEchoMode(QLineEdit.Normal)
+        else:
+            self.pw_input.setEchoMode(QLineEdit.Password)  
+
     def load_account_settings(self):
-        """account_setting.json 파일에서 데이터를 로드하고, saved_id와 save_account 설정"""
+        """settings.json 파일에서 데이터를 로드하고, saved_id와 save_account 설정"""
         try:
             # JSON 파일 로드
             json_path = load_data('settings.json')
@@ -191,10 +197,7 @@ class CourseTrackHome(QDialog):
 
             # 해제 시 처리할 이벤트 추가 가능
 
-        json_path = get_user_data_path('account_setting.json')
-        with open(json_path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
-        print(f"설정이 저장되었습니다: {json_path}")
+        save_setting(data)
 
     def run_button_clicked(self):
         #계정 입력 상태 확인
@@ -202,51 +205,30 @@ class CourseTrackHome(QDialog):
         pw_input = self.pw_input.text()
         course_name = self.course_input.text()
         if not id_input or not pw_input:
-            self.account_error_message()
+            QMessageBox.warning(self, "계정 입력 오류", "아이디와 비밀번호를 모두 입력했는지 확인해주세요!")
             return
         
         if not course_name:
-            self.course_error_message()
+            QMessageBox.warning(self, '수강 과정 입력', "수강하고 싶은 강의를 적었는지 확인해주세요!")
             return
 
         # CourseTrack 스레드 생성 및 시작
         self.tracker = CourseTrack(id_input, pw_input, course_name)
         self.tracker.progress_signal.connect(self.update_status)
 
+
         # ProgressDialog 설정
         self.progress_dialog = ProgressDialog(thread=self.tracker)
+
+        # 두 class 사이의 연결
+        self.progress_dialog.hide_signal.connect(self.tracker.hide_browser)
+
         self.progress_dialog.show()
         self.tracker.start()
 
-    def account_error_message(self):
-            # 메시지 박스 생성
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)  # 오류 메시지 아이콘 설정
-            msg.setText("아이디와 비밀번호를 모두 입력했는지 확인해주세요!")
-            msg.setWindowTitle("계정 입력 오류")
-            msg.setStandardButtons(QMessageBox.Ok)  # 확인 버튼만 있는 메시지 박스
-            
-            # 메시지 박스 실행
-            msg.exec_()
-
-    def course_error_message(self):
-            # 메시지 박스 생성
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)  # 오류 메시지 아이콘 설정
-            msg.setText("수강하고 싶은 강의를 적었는지 확인해주세요!")
-            msg.setWindowTitle("수강 과정 입력 오류")
-            msg.setStandardButtons(QMessageBox.Ok)  # 확인 버튼만 있는 메시지 박스
-            
-            # 메시지 박스 실행
-            msg.exec_()
-
-    def toggle_password_visibility(self, state):
-        if state == Qt.Checked:
-            self.pw_input.setEchoMode(QLineEdit.Normal)
-        else:
-            self.pw_input.setEchoMode(QLineEdit.Password)
-
 class ProgressDialog(QDialog):
+    hide_signal = pyqtSignal()
+
     def __init__(self, thread, parent=None):
         super().__init__(parent)
         self.thread = thread
@@ -262,7 +244,25 @@ class ProgressDialog(QDialog):
         layout.addWidget(self.status_label)
 
         # 중지 버튼
-        self.stop_button = QPushButton('중지', self)
+        button_layout = QHBoxLayout()
+
+        self.hide_button = QPushButton('화면 숨기기')
+        self.hide_button.setStyleSheet("""
+            QPushButton {
+                padding: 5px;
+                font-size: 14px;
+                background-color: #4a90e2;  # 부드러운 파란색
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #388e3c;  # 진한 녹색
+            }
+        """)
+        self.hide_button.clicked.connect(self.emit_hide_signal)
+
+        self.stop_button = QPushButton('중지')
         self.stop_button.setStyleSheet("""
             QPushButton {
                 padding: 5px;
@@ -277,13 +277,17 @@ class ProgressDialog(QDialog):
             }
         """)
         self.stop_button.clicked.connect(self.stop_program)
-        layout.addWidget(self.stop_button)
+        button_layout.addWidget(self.stop_button)
+        button_layout.addWidget(self.hide_button)
 
         self.setLayout(layout)
 
     # 시그널을 받아서 진행 상황 업데이트
     def update_status(self, status):
         self.status_label.setText(status)  # 전달받은 메시지를 라벨에 표시
+
+    def emit_hide_signal(self):
+        self.minimize_signal.emit()
 
     # 프로그램 중지
     def stop_program(self):
@@ -486,6 +490,9 @@ class CourseTrack(QThread) :
 
             except Exception as e :
                 print(f"오류 : {e}")
+
+    def hide_browser(self) :
+        self.driver.set_window_position(-1000, 0)
 
     def run(self):
         # 스레드에서 로그인, 강의 로드, 강의 처리 메서드 실행
