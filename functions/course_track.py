@@ -222,12 +222,19 @@ class CourseTrackHome(QDialog):
 
         # 두 class 사이의 연결
         self.progress_dialog.hide_signal.connect(self.tracker.hide_browser)
-
+        self.progress_dialog.restore_signal.connect(self.tracker.restore_browser)
         self.progress_dialog.show()
         self.tracker.start()
 
+    def toggle_password_visibility(self, state):
+        if state == Qt.Checked:
+            self.pw_input.setEchoMode(QLineEdit.Normal)
+        else:
+            self.pw_input.setEchoMode(QLineEdit.Password)
+
 class ProgressDialog(QDialog):
     hide_signal = pyqtSignal()
+    restore_signal = pyqtSignal()
 
     def __init__(self, thread, parent=None):
         super().__init__(parent)
@@ -237,11 +244,11 @@ class ProgressDialog(QDialog):
         # 항상 최상단에 표시되도록 설정
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
         # 진행 상황을 표시할 라벨
         self.status_label = QLabel('진행 상황: 준비 중...')
-        layout.addWidget(self.status_label)
+        main_layout.addWidget(self.status_label)
 
         # 중지 버튼
         button_layout = QHBoxLayout()
@@ -262,6 +269,25 @@ class ProgressDialog(QDialog):
         """)
         self.hide_button.clicked.connect(self.emit_hide_signal)
 
+        self.restore_button = QPushButton('다시 드러내기')
+        self.restore_button.setStyleSheet("""
+            QPushButton {
+                padding: 5px;
+                font-size: 14px;
+                background-color: #4a90e2;  # 부드러운 파란색
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #388e3c;  # 진한 녹색
+            }
+        """)
+        self.restore_button.clicked.connect(self.emit_restore_signal)
+
+        button_layout.addWidget(self.hide_button)
+        button_layout.addWidget(self.restore_button)
+
         self.stop_button = QPushButton('중지')
         self.stop_button.setStyleSheet("""
             QPushButton {
@@ -277,17 +303,22 @@ class ProgressDialog(QDialog):
             }
         """)
         self.stop_button.clicked.connect(self.stop_program)
-        button_layout.addWidget(self.stop_button)
-        button_layout.addWidget(self.hide_button)
+        
+        main_layout.addWidget(self.stop_button)
 
-        self.setLayout(layout)
+        main_layout.addLayout(button_layout)
+
+        self.setLayout(main_layout)
 
     # 시그널을 받아서 진행 상황 업데이트
     def update_status(self, status):
         self.status_label.setText(status)  # 전달받은 메시지를 라벨에 표시
 
     def emit_hide_signal(self):
-        self.minimize_signal.emit()
+        self.hide_signal.emit()
+
+    def emit_restore_signal(self):
+        self.restore_signal.emit()
 
     # 프로그램 중지
     def stop_program(self):
@@ -347,6 +378,12 @@ class CourseTrack(QThread) :
     
             time.sleep(1)
         self.progress_signal.emit("타이머 종료!")
+    
+    def hide_browser(self) :
+        self.driver.set_window_position(-2000, 0)
+
+    def restore_browser(self) :
+        self.driver.set_window_position(500, 0)
 
 ##------------- Thread process --------------
 
@@ -397,7 +434,9 @@ class CourseTrack(QThread) :
             print("이어보기 버튼을 클릭했습니다!")
         else:
             self.progress_signal.emit("강의를 발견하지 못했습니다. 다시 시도해주세요.")
-      
+    
+
+    
     def handle_course(self) :
         print("still work")
         if not self.check_running(): return
@@ -425,22 +464,29 @@ class CourseTrack(QThread) :
 
         #퀴즈 페이지 아닐 경우 재생 버튼 나올때까지 기다려서 클릭
             element = WebDriverWait(self.driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/button'))
-            )
+                EC.any_of(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/button')),
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[4]/button[2]'))
+            ))
             element.click()
 
         while 1 :
             #음소거 우선    
             try :
                 video_player = WebDriverWait(self.driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]'))
-                )
+                    EC.any_of(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]')),
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]'))
+                ))
                 # JavaScript로 mouseover 이벤트 트리거
                 actions = ActionChains(self.driver)
                 actions.move_to_element(video_player).perform()
 
                 mute_btn = WebDriverWait(self.driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')))
+                    EC.any_of(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')),
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]/div[1]/button')),
+                        ))
                 mute_btn.click()
 
             except :
@@ -458,14 +504,25 @@ class CourseTrack(QThread) :
                 #영상 길이 찾아내기 
                 total_time=''
 
+                actions = ActionChains(self.driver)
+                actions.move_to_element(video_player).perform()
+
                 while (total_time == '') or (total_time == '-:-') or (current_time == '') or (current_time == '-:-'):
 
-                    actions = ActionChains(self.driver)
-                    actions.move_to_element(video_player).perform()
 
-                    total_time = self.driver.find_element(By.XPATH, '//*[@id="lx-player"]/div[9]/div[4]/span[2]').text.strip()
+
+                    self.progress_signal.emit("영상 길이 찾아내는 중...")
+
+                    total_time = WebDriverWait(self.driver, 3).until(
+                    EC.any_of(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="lx-player"]/div[9]/div[4]/span[2]')),
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="lx-player"]/div[10]/div[4]/span[2]')),
+                    ))
+                    total_time = total_time.text.strip()
+                    self.progress_signal.emit("현재 시점 찾아내는 중...")
                     current_time = WebDriverWait(self.driver, 10).until(
                         EC.presence_of_element_located((By.CLASS_NAME, "vjs-current-time-display"))).text.strip()
+                    print(total_time, current_time)
 
                 total_time = total_time.split(":")
                 total_time = int(total_time[0])*60 + int(total_time[1])
@@ -491,9 +548,6 @@ class CourseTrack(QThread) :
             except Exception as e :
                 print(f"오류 : {e}")
 
-    def hide_browser(self) :
-        self.driver.set_window_position(-1000, 0)
-
     def run(self):
         # 스레드에서 로그인, 강의 로드, 강의 처리 메서드 실행
         self.log_in()
@@ -504,4 +558,3 @@ class CourseTrack(QThread) :
         self._is_running = False
         self.driver.quit()
         self.terminate()
-
