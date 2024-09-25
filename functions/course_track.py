@@ -20,21 +20,20 @@ from PyQt5.QtGui import QFont, QIcon
 from filehandler import *
 
 ##------------- GUI elements --------------
-class CourseTrackHome(QWidget):
-    def __init__(self, saved_id, save_account):
+class CourseTrackHome(QDialog):
+    def __init__(self):
         super().__init__()
 
-        # 기존 설정 확인
-        self.saved_id = saved_id
-        self.save_account = save_account
+        # 기존 계정 설정 확인
+        self.load_account_settings()
 
-        # 윈도우 기본 설정
-        self.setWindowTitle('Gamgee v0.2-beta')
+        self.initUI()
 
-        self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
+    def initUI(self) :
 
         # 레이아웃 설정
         main_layout = QVBoxLayout()
+        self.setWindowTitle('연수 이수 도우미')
 
         self.combo_label = QLabel('현재까지 본 프로그램은 <중앙교육연수원>의 연수만을 지원합니다.')
         self.combo_label.setStyleSheet("font-size: 12px;")
@@ -161,6 +160,30 @@ class CourseTrackHome(QWidget):
         # 메인 레이아웃 설정
         self.setLayout(main_layout)
 
+    def toggle_password_visibility(self, state):
+        if state == Qt.Checked:
+            self.pw_input.setEchoMode(QLineEdit.Normal)
+        else:
+            self.pw_input.setEchoMode(QLineEdit.Password)  
+
+    def load_account_settings(self):
+        """settings.json 파일에서 데이터를 로드하고, saved_id와 save_account 설정"""
+        try:
+            # JSON 파일 로드
+            json_path = load_data('settings.json')
+            with open(json_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                self.saved_id = data.get("course_id", "")  # 'id'가 없으면 빈 문자열로 처리
+                self.save_account = data.get("course_save_account", False)  # 'save_account'가 없으면 False로 처리
+        except FileNotFoundError:
+            print("account_setting.json 파일을 찾을 수 없습니다.")
+            self.saved_id = ""
+            self.save_account = False
+        except json.JSONDecodeError:
+            print("account_setting.json 파일 형식이 잘못되었습니다.")
+            self.saved_id = ""
+            self.save_account = False 
+
     def update_status(self, message):
         self.progress_dialog.update_status(message)
 
@@ -174,10 +197,7 @@ class CourseTrackHome(QWidget):
 
             # 해제 시 처리할 이벤트 추가 가능
 
-        json_path = get_user_data_path('account_setting.json')
-        with open(json_path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
-        print(f"설정이 저장되었습니다: {json_path}")
+        save_setting(data)
 
     def run_button_clicked(self):
         #계정 입력 상태 확인
