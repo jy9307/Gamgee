@@ -54,6 +54,9 @@ class ProjectNeisHome(QDialog) :
         if self.setting_data['save_class_info'] :
             
             self.class_info_destination_path = self.setting_data['save_class_info']
+        else :
+            self.class_info_destination_path = None
+
 
         self.initUI()
     

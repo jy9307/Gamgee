@@ -20,20 +20,21 @@ from PyQt5.QtGui import QFont, QIcon
 from filehandler import *
 
 ##------------- GUI elements --------------
-class CourseTrackHome(QDialog):
-    def __init__(self):
+class CourseTrackHome(QWidget):
+    def __init__(self, saved_id, save_account):
         super().__init__()
 
-        # 기존 계정 설정 확인
-        self.load_account_settings()
+        # 기존 설정 확인
+        self.saved_id = saved_id
+        self.save_account = save_account
 
-        self.initUI()
+        # 윈도우 기본 설정
+        self.setWindowTitle('Gamgee v0.3-beta')
 
-    def initUI(self) :
+        self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
         # 레이아웃 설정
         main_layout = QVBoxLayout()
-        self.setWindowTitle('연수 이수 도우미')
 
         self.combo_label = QLabel('현재까지 본 프로그램은 <중앙교육연수원>의 연수만을 지원합니다.')
         self.combo_label.setStyleSheet("font-size: 12px;")
@@ -151,6 +152,7 @@ class CourseTrackHome(QDialog):
 
         account_setting_grid_layout.addWidget(self.saved_id_checkbox, 0, 0)
         self.show_password_checkbox = QCheckBox('비밀번호 보이기')
+        self.state = self.show_password_checkbox.checkState()
         self.show_password_checkbox.stateChanged.connect(self.toggle_password_visibility)
         account_setting_grid_layout.addWidget(self.show_password_checkbox, 0, 1)
 
@@ -160,40 +162,14 @@ class CourseTrackHome(QDialog):
         # 메인 레이아웃 설정
         self.setLayout(main_layout)
 
-    def toggle_password_visibility(self, state):
-        if state == Qt.Checked:
-            self.pw_input.setEchoMode(QLineEdit.Normal)
-        else:
-            self.pw_input.setEchoMode(QLineEdit.Password)  
-
-    def load_account_settings(self):
-        """settings.json 파일에서 데이터를 로드하고, saved_id와 save_account 설정"""
-        try:
-            # JSON 파일 로드
-            json_path = load_data('settings.json')
-            with open(json_path, 'r', encoding='utf-8') as file:
-                data = json.load(file)
-                self.saved_id = data.get("course_id", "")  # 'id'가 없으면 빈 문자열로 처리
-                self.save_account = data.get("course_save_account", False)  # 'save_account'가 없으면 False로 처리
-        except FileNotFoundError:
-            print("account_setting.json 파일을 찾을 수 없습니다.")
-            self.saved_id = ""
-            self.save_account = False
-        except json.JSONDecodeError:
-            print("account_setting.json 파일 형식이 잘못되었습니다.")
-            self.saved_id = ""
-            self.save_account = False 
-
     def update_status(self, message):
         self.progress_dialog.update_status(message)
 
     def checkbox_changed(self, state):
-        if state == Qt.Checked:
-            print("체크박스가 체크되었습니다.")
-            data = {"id": self.id_input.text(), "save_account": True}
+        data = load_setting()
 
-        else:
-            data = {"id": None, "save_account": False}
+        data["coursetrack_id"] = self.id_input.text() if state == Qt.Checked else None
+        data["coursetrack_save_account"] = state == Qt.Checked
 
             # 해제 시 처리할 이벤트 추가 가능
 
@@ -223,6 +199,7 @@ class CourseTrackHome(QDialog):
         # 두 class 사이의 연결
         self.progress_dialog.hide_signal.connect(self.tracker.hide_browser)
         self.progress_dialog.restore_signal.connect(self.tracker.restore_browser)
+        self.progress_dialog.mute_signal.connect(self.tracker.mute_browser)
         self.progress_dialog.show()
         self.tracker.start()
 
@@ -235,6 +212,7 @@ class CourseTrackHome(QDialog):
 class ProgressDialog(QDialog):
     hide_signal = pyqtSignal()
     restore_signal = pyqtSignal()
+    mute_signal = pyqtSignal()
 
     def __init__(self, thread, parent=None):
         super().__init__(parent)
@@ -303,6 +281,10 @@ class ProgressDialog(QDialog):
             }
         """)
         self.stop_button.clicked.connect(self.stop_program)
+
+        self.mute_check = QCheckBox('자동 음소거')
+        self.mute_check.stateChanged.connect(self.emit_mute_signal)
+        main_layout.addWidget(self.mute_check)
         
         main_layout.addWidget(self.stop_button)
 
@@ -320,6 +302,10 @@ class ProgressDialog(QDialog):
     def emit_restore_signal(self):
         self.restore_signal.emit()
 
+    def emit_mute_signal(self, state):
+        if state == Qt.Checked:  # 체크박스가 선택된 경우
+            self.mute_signal.emit()
+
     # 프로그램 중지
     def stop_program(self):
         self.close()  # 프로그램 종료
@@ -336,6 +322,7 @@ class CourseTrack(QThread) :
         self.pw = pw
         self.course_name = course_name
         self._is_running = True
+        self.mute_mode = False
 
         options = webdriver.ChromeOptions()
 
@@ -384,6 +371,9 @@ class CourseTrack(QThread) :
 
     def restore_browser(self) :
         self.driver.set_window_position(500, 0)
+    
+    def mute_browser(self):
+        self.mute_mode = True  # 음소거 신호가 들어오면 상태를 True로 변경
 
 ##------------- Thread process --------------
 
@@ -391,6 +381,7 @@ class CourseTrack(QThread) :
         
         
         passing = 0
+        self.hide_browser()
 
         while passing ==0 : 
             if not self.check_running(): return
@@ -408,6 +399,7 @@ class CourseTrack(QThread) :
         if not self.check_running(): return
         print("still work")
         self.driver.get('https://www.neti.go.kr/lh/ms/cs/atnlcListView.do?menuId=1000006046')
+
         time.sleep(1)
 
         course_elements = self.driver.find_elements(By.XPATH, "//ul[@class='course_list_box type_02']//a[@class='title']")
@@ -471,32 +463,47 @@ class CourseTrack(QThread) :
             element.click()
 
         while 1 :
-            #음소거 우선    
-            try :
-                video_player = WebDriverWait(self.driver, 3).until(
-                    EC.any_of(
-                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]')),
-                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]'))
-                ))
-                # JavaScript로 mouseover 이벤트 트리거
-                actions = ActionChains(self.driver)
-                actions.move_to_element(video_player).perform()
+            #음소거 우선
+            if self.mute_mode :
+                try :
+                    video_player = WebDriverWait(self.driver, 10).until(
+                        EC.any_of(
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]')),
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]'))
+                    ))
+                    # JavaScript로 mouseover 이벤트 트리거
+                    actions = ActionChains(self.driver)
+                    actions.move_to_element(video_player).perform()
 
-                mute_btn = WebDriverWait(self.driver, 3).until(
-                    EC.any_of(
-                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')),
-                        EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]/div[1]/button')),
-                        ))
-                mute_btn.click()
+                    mute_btn = WebDriverWait(self.driver, 10).until(
+                        EC.any_of(
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]/div[1]/button')),
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]/div[1]/button')),
+                            ))
+                    mute_btn.click()
 
-            except :
-                self.pass_quiz()
-                continue
+                except :
+                    self.pass_quiz()
+                    continue
 
+            else :
+                try :
+                    self.pass_quiz()
+                    continue
+                
+                except :
+                    video_player = WebDriverWait(self.driver, 10).until(
+                        EC.any_of(
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[9]')),
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[10]'))
+                    ))
+                    # JavaScript로 mouseover 이벤트 트리거
+                    actions = ActionChains(self.driver)
+                    actions.move_to_element(video_player).perform()
+                    
             try :
 
                 # XPath를 사용하여 비디오 플레이어 요소 찾기
-
                 # ActionChains를 사용하여 마우스를 비디오 플레이어 위로 이동        
                 self.progress_signal.emit("영상 길이 찾아내는 중...")
                 get_time_start = time.time()
@@ -508,8 +515,6 @@ class CourseTrack(QThread) :
                 actions.move_to_element(video_player).perform()
 
                 while (total_time == '') or (total_time == '-:-') or (current_time == '') or (current_time == '-:-'):
-
-
 
                     self.progress_signal.emit("영상 길이 찾아내는 중...")
 

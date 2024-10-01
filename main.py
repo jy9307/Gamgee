@@ -56,7 +56,6 @@ class LoginWindow(QWidget):
         self.signup_button.clicked.connect(self.signup)
 
         # 레이아웃에 위젯 추가
-
         account_layout.addWidget(self.id_input,0,0)
         account_layout.addWidget(self.pw_input,1,0)
         account_layout.addWidget(self.login_button,0,1,2,1)
@@ -296,7 +295,7 @@ class HomeScreen(QWidget):
 
     def course_track_run(self) :
         self.hide()
-        self.course_track_home = CourseTrackHome()
+        self.course_track_home = CourseTrackHome(self)
         self.course_track_home.exec_()
 
         self.show()
