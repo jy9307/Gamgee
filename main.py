@@ -12,7 +12,7 @@ from functions.project_neis import ProjectNeisHome
 from filehandler import *
 
 # Firestore 초기화
-cred = credentials.Certificate('gamgee-bed2b-e8385da2215e.json')
+cred = credentials.Certificate('db/fs_gamgee.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 

@@ -20,17 +20,18 @@ from PyQt5.QtGui import QFont, QIcon
 from filehandler import *
 
 ##------------- GUI elements --------------
-class CourseTrackHome(QWidget):
-    def __init__(self, saved_id, save_account):
-        super().__init__()
+class CourseTrackHome(QDialog):
+    def __init__(self, parent= None):
+        super().__init__(parent)
 
-        # 기존 설정 확인
-        self.saved_id = saved_id
-        self.save_account = save_account
+        # 기존 계정 설정 확인
+        self.load_account_settings()
+        self.initUI()
 
-        # 윈도우 기본 설정
-        self.setWindowTitle('Gamgee v0.3-beta')
+    def initUI(self) :
 
+        # 레이아웃 설정
+        self.setWindowTitle('연수 이수 도우미')
         self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
         # 레이아웃 설정
@@ -162,6 +163,24 @@ class CourseTrackHome(QWidget):
         # 메인 레이아웃 설정
         self.setLayout(main_layout)
 
+    def load_account_settings(self):    
+        """settings.json 파일에서 데이터를 로드하고, saved_id와 save_account 설정"""
+        try:
+            # JSON 파일 로드
+            json_path = load_data('settings.json')
+            with open(json_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                self.saved_id = data.get("coursetrack_id", "")  # 'id'가 없으면 빈 문자열로 처리
+                self.save_account = data.get("coursetrack_save_account", False)  # 'save_account'가 없으면 False로 처리
+        except FileNotFoundError:
+            print("account_setting.json 파일을 찾을 수 없습니다.")
+            self.saved_id = ""
+            self.save_account = False
+        except json.JSONDecodeError:
+            print("account_setting.json 파일 형식이 잘못되었습니다.")
+            self.saved_id = ""
+            self.save_account = False 
+
     def update_status(self, message):
         self.progress_dialog.update_status(message)
 
@@ -200,8 +219,9 @@ class CourseTrackHome(QWidget):
         self.progress_dialog.hide_signal.connect(self.tracker.hide_browser)
         self.progress_dialog.restore_signal.connect(self.tracker.restore_browser)
         self.progress_dialog.mute_signal.connect(self.tracker.mute_browser)
-        self.progress_dialog.show()
+
         self.tracker.start()
+        self.progress_dialog.exec_()
 
     def toggle_password_visibility(self, state):
         if state == Qt.Checked:
@@ -455,7 +475,7 @@ class CourseTrack(QThread) :
         except :
 
         #퀴즈 페이지 아닐 경우 재생 버튼 나올때까지 기다려서 클릭
-            element = WebDriverWait(self.driver, 3).until(
+            element = WebDriverWait(self.driver, 10).until(
                 EC.any_of(
                     EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/button')),
                     EC.element_to_be_clickable((By.XPATH, '//*[@id="lx-player"]/div[4]/button[2]'))
