@@ -14,8 +14,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGridLayout, QDialog, QFrame, QMessageBox
 )
 from PyQt5.QtCore import Qt
-
-from pywinauto import application
+from pywinauto import Application
 from pywinauto.keyboard import send_keys
 
 #### ------- TOOLS
@@ -55,8 +54,7 @@ class ProjectNeisHome(QDialog) :
             
             self.class_info_destination_path = self.setting_data['save_class_info']
         else :
-            self.class_info_destination_path = None
-
+            self.class_info_destination_path = None       
 
         self.initUI()
     
@@ -574,15 +572,15 @@ class ProjectNeis() :
         super().__init__()
         self.class_info = pd.read_csv(class_info, encoding="cp949")
 
-        # self.app = application(backend='uia').connect(title_re =".*Microsoft.*Edge.*")
-        # self.neis = self.app["4세대 지능형 나이스 시스템 외 페이지 1개 - 프로필 1 - Microsoft​ Edge', Chrome_WidgetWin_1"]
+        self.app = Application(backend='uia').connect(title_re =".*Microsoft.*Edge.*")
+        self.neis = self.app["4세대 지능형 나이스 시스템 외 페이지 1개 - 프로필 1 - Microsoft​ Edge', Chrome_WidgetWin_1"]
 
-    def tabs(n) :
+    def tabs(self,n) :
         for i in range(n):
             send_keys('{TAB}')
             time.sleep(1)
 
-    def print_identifier(target):
+    def print_identifier(self,target):
         target = target
         target.print_control_identifiers()
 

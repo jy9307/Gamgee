@@ -711,6 +711,7 @@ class CourseTrack(QThread) :
     def load_course(self) :
         if not self.check_running(): return
         try :
+            time.sleep(1)
             self.driver.get('https://www.neti.go.kr/lh/ms/cs/atnlcListView.do?menuId=1000006046')
             print("loading courses....")
 
