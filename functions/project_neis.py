@@ -2,14 +2,14 @@ import sys, os, shutil, json, subprocess, csv, io, warnings
 import pandas as pd
 import pyautogui, random, pyperclip, time
 from functools import partial
-from filehandler import * 
+from tools import *
 ## COM 초기화 에러 해결
 
 warnings.simplefilter("ignore", UserWarning) 
 sys.coinit_flags = 2 # STA
 
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QCheckBox, QFileDialog, 
+    QLabel, QLineEdit, QFileDialog, 
     QTableWidget, QTableWidgetItem, QAbstractItemView, QPushButton, 
     QVBoxLayout, QHBoxLayout, QGridLayout, QDialog, QFrame, QMessageBox
 )
@@ -278,8 +278,6 @@ class ProjectNeisHome(QDialog) :
         # parent는 self, class_info는 self.class_info_destination_path
         self.extra_sports_club_dialog = ExtraSportsClub(parent=self)
         self.extra_sports_club_dialog.exec_()
-
-
 
 class SubjectObs(QDialog) :
 
