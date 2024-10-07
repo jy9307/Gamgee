@@ -5,16 +5,8 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox, QGridLayout, QDialog, QHBoxLayout, QCheckBox
 )
 from PyQt5.QtGui import QPixmap, QFontDatabase, QFont, QIcon
-import firebase_admin
-from firebase_admin import credentials, firestore
-from functions.course_track import CourseTrackHome
-from functions.project_neis import ProjectNeisHome
-from filehandler import *
-
-# Firestore 초기화
-cred = credentials.Certificate('gamgee-bed2b-e8385da2215e.json')
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+from functions import CourseTrackHome, ProjectNeisHome
+from tools import *
 
 # 로그인 화면
 class LoginWindow(QWidget):
@@ -56,7 +48,6 @@ class LoginWindow(QWidget):
         self.signup_button.clicked.connect(self.signup)
 
         # 레이아웃에 위젯 추가
-
         account_layout.addWidget(self.id_input,0,0)
         account_layout.addWidget(self.pw_input,1,0)
         account_layout.addWidget(self.login_button,0,1,2,1)
@@ -117,13 +108,16 @@ class LoginWindow(QWidget):
         user_id = self.id_input.text()
         password = self.pw_input.text()
 
-        # Firestore에서 ID와 PW 확인
-        user_ref = db.collection('users').document(user_id)
-        user = user_ref.get()
+        #Firestore에서 ID PW확인후 로그인   
+        if login_check(user_id,password):
+            app_user_state.set_user_id(user_id)
 
-        if user.exists and user.to_dict().get('pw') == password:
+            #로그 기록
+            total_field_count_up("total_login_count")
+
             self.openHomeScreen()  # 홈 화면 열기
         else:
+            send_log_to_user_firestore(event_result = "failure", event_description=f"로그인 실패")
             QMessageBox.warning(self, 'Login', 'ID 또는 비밀번호가 일치하지 않습니다.')
 
     # 회원가입 처리 함수
@@ -137,7 +131,7 @@ class LoginWindow(QWidget):
 
     # 홈 화면 열기
     def openHomeScreen(self):
-        self.home_screen = HomeScreen(user_id=self.id_input.text())
+        self.home_screen = HomeScreen()
         self.home_screen.show()
         self.close()
 
@@ -218,10 +212,8 @@ class SignInWindow(QDialog) :
 # 로그인 후 홈 화면
 class HomeScreen(QWidget):
 
-    def __init__(self, user_id):
+    def __init__(self):
         super().__init__()
-        self.user_id = user_id
-
         # 시스템 트레이 설정
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(QIcon('gamgee_icon.ico'))  # 트레이에 사용할 아이콘 설정
@@ -230,15 +222,18 @@ class HomeScreen(QWidget):
         # 트레이 메뉴 설정
         tray_menu = QMenu()
 
-        restore_action = QAction("복원", self)
-        restore_action.triggered.connect(self.showNormal)
+        restore_action = QAction("열기", self)
+        restore_action.triggered.connect(self.showNormal)  # 복원 액션 연결
         tray_menu.addAction(restore_action)
 
         quit_action = QAction("종료", self)
-        quit_action.triggered.connect(QApplication.quit)
+        quit_action.triggered.connect(QApplication.quit)  # 종료 액션 연결
         tray_menu.addAction(quit_action)
 
-        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.setContextMenu(tray_menu)  # 트레이 메뉴 설정
+
+        # 트레이 아이콘 더블클릭 시 창 복구 기능 연결
+        self.tray_icon.activated.connect(self.restore_window)
 
         self.initUI()
 
@@ -250,7 +245,7 @@ class HomeScreen(QWidget):
 
         # 환영 메시지 레이아웃
         welcome_layout = QHBoxLayout()
-        self.label = QLabel(f'{self.user_id}님 환영합니다!')
+        self.label = QLabel(f'{app_user_state.get_user_id()}님 환영합니다!')
         # QLabel에 스타일 적용 (배경색, 글자색, 패딩 등)
         self.label.setStyleSheet("""
             QLabel {
@@ -296,7 +291,7 @@ class HomeScreen(QWidget):
 
     def course_track_run(self) :
         self.hide()
-        self.course_track_home = CourseTrackHome()
+        self.course_track_home = CourseTrackHome(self)
         self.course_track_home.exec_()
 
         self.show()
@@ -319,6 +314,13 @@ class HomeScreen(QWidget):
                 2000  # 알림이 2초 동안 표시됩니다.
             )
             event.ignore()  # 창이 닫히지 않도록 막음
+
+    
+    def restore_window(self, reason):
+        """트레이 아이콘 더블클릭 시 창을 복구"""
+        if reason == QSystemTrayIcon.DoubleClick:  # 더블클릭한 경우에만 창을 복구
+            self.showNormal()  # 창을 복구
+            self.activateWindow()  # 창을 활성화
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
