@@ -1,9 +1,15 @@
 import os
 import subprocess
 import time
+import pandas as pd
 from PyQt5 import QtWidgets
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+
 
 class ChromeControlApp(QtWidgets.QWidget):
     def __init__(self):
@@ -14,12 +20,20 @@ class ChromeControlApp(QtWidgets.QWidget):
         self.setWindowTitle('Chrome Controller')
         self.setGeometry(100, 100, 300, 200)
 
-        self.label = QtWidgets.QLabel('Chrome 제어 앱', self)
-        self.label.move(50, 50)
+        layout = QtWidgets.QVBoxLayout()  # QVBoxLayout 사용
 
-        self.control_btn = QtWidgets.QPushButton('브라우저 제어 시작', self)
-        self.control_btn.move(50, 100)
-        self.control_btn.clicked.connect(self.run_and_control_browser)
+        self.label = QtWidgets.QLabel('Chrome 제어 앱', self)
+        layout.addWidget(self.label)
+
+        self.run_btn = QtWidgets.QPushButton('브라우저 오픈', self)
+        self.run_btn.clicked.connect(self.run_chrome)
+        layout.addWidget(self.run_btn)
+
+        self.control_btn = QtWidgets.QPushButton('브라우저 제어', self)
+        self.control_btn.clicked.connect(self.control_browser)
+        layout.addWidget(self.control_btn)
+
+        self.setLayout(layout)  # setCentralWidget 대신 setLayout 사용
 
     def run_and_control_browser(self):
         self.label.setText('Chrome을 디버깅 모드로 실행합니다...')
@@ -43,11 +57,69 @@ class ChromeControlApp(QtWidgets.QWidget):
         options.add_experimental_option('debuggerAddress', 'localhost:9222')
         driver = webdriver.Chrome(options=options)
 
-        # 구글 검색창에 '셀레니움' 입력 후 검색
-        driver.get('http://www.google.com')
-        search_box = driver.find_element(By.NAME, 'q')
-        search_box.send_keys('셀레니움')
-        search_box.submit()
+        actions = ActionChains(driver)
+
+        df = pd.read_csv("m_class.csv", encoding = 'cp949')
+        names = list(df.iloc[:,1])
+
+        for n in names :
+        
+            element = element = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="1행 마지막 열 성명 고도현 link"]'))
+                            )
+            element.click()
+
+            # if i != 1 :
+            #     time.sleep(1)
+            #     # 부모 요소를 먼저 찾음
+            #     parent_element = driver.find_element(By.XPATH, '//*[@id="uuid-2sh"]/div[2]')
+            #     print("parent : ", parent_element)
+
+            time.sleep(1)
+            # 2. '//*[@id="uuid-1ci"]/div' 버튼을 2번 클릭
+            button = driver.find_element(By.XPATH, '//*[@aria-label="행추가"]')
+            button.click()
+            time.sleep(1)  # 클릭 사이에 1초 대기
+            button.click()
+
+            input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "1행 일자")]')
+            actions = ActionChains(driver)
+            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("20240910").perform()
+            
+            time.sleep(0.5)
+
+            input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "1행 내용")]')
+            actions.move_to_element(input_element).click().send_keys("안녕하세요").perform()
+
+            time.sleep(3)
+
+            input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "2행 마지막 행 일자")]')
+            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("20240825").perform()
+
+            time.sleep(0.5)
+
+            input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "2행 마지막 행 내용")]')
+            actions.move_to_element(input_element).click().send_keys("즐겁네요").perform()
+
+            button = driver.find_element(By.XPATH, '//*[@aria-label="저장"]')
+            button.click()
+
+            element = driver.find_element(By.XPATH, '//div[text()="확인"]')
+
+            # 부모 요소를 찾는다면 (예를 들어, 확인 버튼이 div 안에 포함된 경우)
+            parent_button = element.find_element(By.XPATH, './ancestor::button')
+
+            # 버튼 클릭
+            parent_button.click()
+
+            
+
+
+            
+
+
+
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
