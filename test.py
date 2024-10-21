@@ -5,6 +5,7 @@ import pandas as pd
 from PyQt5 import QtWidgets
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -55,7 +56,11 @@ class ChromeControlApp(QtWidgets.QWidget):
     def control_browser(self):
         options = webdriver.ChromeOptions()
         options.add_experimental_option('debuggerAddress', 'localhost:9222')
-        driver = webdriver.Chrome(options=options)
+        driver_path = r"C:\Gamgee\chromedriver.exe"
+
+        service = Service(executable_path = driver_path)
+        driver = webdriver.Chrome(options=options,
+                                  service=service)
 
         actions = ActionChains(driver)
 
@@ -63,10 +68,9 @@ class ChromeControlApp(QtWidgets.QWidget):
         names = list(df.iloc[:,1])
 
         for n in names :
-        
-            element = element = WebDriverWait(driver, 10).until(
-                                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="1행 마지막 열 성명 고도현 link"]'))
-                            )
+            print(n)
+            wait = WebDriverWait(driver, 10)
+            element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@aria-label="1행 마지막 열 성명 {n} link"]')))
             element.click()
 
             # if i != 1 :
@@ -84,7 +88,7 @@ class ChromeControlApp(QtWidgets.QWidget):
 
             input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "1행 일자")]')
             actions = ActionChains(driver)
-            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("20240910").perform()
+            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("2024093").perform()
             
             time.sleep(0.5)
 
@@ -104,21 +108,12 @@ class ChromeControlApp(QtWidgets.QWidget):
             button = driver.find_element(By.XPATH, '//*[@aria-label="저장"]')
             button.click()
 
-            element = driver.find_element(By.XPATH, '//div[text()="확인"]')
-
-            # 부모 요소를 찾는다면 (예를 들어, 확인 버튼이 div 안에 포함된 경우)
-            parent_button = element.find_element(By.XPATH, './ancestor::button')
+            element = wait.until(EC.presence_of_element_located(
+    (By.CSS_SELECTOR, ".btn-secondary.cl-control.cl-button.cl-unselectable")
+))
 
             # 버튼 클릭
-            parent_button.click()
-
-            
-
-
-            
-
-
-
+            element.click()
 
 
 if __name__ == '__main__':
