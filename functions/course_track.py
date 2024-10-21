@@ -18,15 +18,24 @@ from tools import *
 ##------------- GUI elements --------------
 
 class CourseTrackHome(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.load_account_settings()   
+    def __init__(self, parent= None):
+        super().__init__(parent)
 
+        # 기존 계정 설정 확인
+        self.load_account_settings()
+        self.initUI()
+
+    def initUI(self) :
         # 윈도우 기본 설정
         self.setWindowTitle('Gamgee v0.43-beta')
         self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
 
 
+        # 레이아웃 설정
+        self.setWindowTitle('연수 이수 도우미')
+        self.setStyleSheet("background-color: #f0f0f0;")  # 배경색 설정
+
+        
         # 레이아웃 설정
         main_layout = QVBoxLayout()
 
@@ -279,10 +288,12 @@ class CourseTrackHome(QWidget):
 
         if not id_input or not pw_input:
             QMessageBox.warning(self, "계정 입력 오류", "아이디와 비밀번호를 모두 입력했는지 확인해주세요!")
+            send_log_to_user_firestore("failure","계정 입력 오류")
             return
         
         if not course_name:
             QMessageBox.warning(self, '수강 과정 입력', "수강하고 싶은 강의를 적었는지 확인해주세요!")
+            send_log_to_user_firestore("failure","계정 입력 오류")
             return
         
         # '아이디 저장' 체크박스 상태에 따라 아이디를 저장하거나 삭제
