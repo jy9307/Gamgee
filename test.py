@@ -59,18 +59,17 @@ class ChromeControlApp(QtWidgets.QWidget):
         driver_path = r"C:\Gamgee\chromedriver.exe"
 
         service = Service(executable_path = driver_path)
-        driver = webdriver.Chrome(options=options,
-                                  service=service)
+        driver = webdriver.Chrome(options=options)
 
         actions = ActionChains(driver)
 
         df = pd.read_csv("m_class.csv", encoding = 'cp949')
         names = list(df.iloc[:,1])
 
-        for n in names :
+        for i, n in enumerate(names) :
             print(n)
-            wait = WebDriverWait(driver, 10)
-            element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@aria-label="1행 마지막 열 성명 {n} link"]')))
+            wait = WebDriverWait(driver, 30)
+            element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@aria-label="{i+1}행 마지막 열 성명 {n} link"]')))
             element.click()
 
             # if i != 1 :
@@ -79,39 +78,45 @@ class ChromeControlApp(QtWidgets.QWidget):
             #     parent_element = driver.find_element(By.XPATH, '//*[@id="uuid-2sh"]/div[2]')
             #     print("parent : ", parent_element)
 
-            time.sleep(1)
+            time.sleep(0.3)
             # 2. '//*[@id="uuid-1ci"]/div' 버튼을 2번 클릭
             button = driver.find_element(By.XPATH, '//*[@aria-label="행추가"]')
             button.click()
-            time.sleep(1)  # 클릭 사이에 1초 대기
+            time.sleep(0.3)  # 클릭 사이에 1초 대기
             button.click()
 
             input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "1행 일자")]')
             actions = ActionChains(driver)
-            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("2024093").perform()
-            
-            time.sleep(0.5)
+            select_all = actions.move_to_element(input_element).send_keys(Keys.CONTROL, 'a')
+            time.sleep(0.3)
+            select_all.send_keys("2024093").perform()
 
             input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "1행 내용")]')
             actions.move_to_element(input_element).click().send_keys("안녕하세요").perform()
 
-            time.sleep(3)
-
-            input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "2행 마지막 행 일자")]')
-            actions.move_to_element(input_element).click().send_keys(Keys.CONTROL, 'a').send_keys("20240825").perform()
+            time.sleep(0.3)
+            
+            input_2_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "2행 마지막 행 일자")]')
+            input_2_element = actions.move_to_element(input_2_element).click()
+            time.sleep(0.3)
+            input_2_element.send_keys(Keys.CONTROL, 'a')
+            time.sleep(0.3)
+            select_all.send_keys("2024093").perform()
 
             time.sleep(0.5)
 
             input_element = driver.find_element(By.XPATH, '//*[contains(@aria-label, "2행 마지막 행 내용")]')
-            actions.move_to_element(input_element).click().send_keys("즐겁네요").perform()
+            actions.move_to_element(input_element).send_keys("즐겁네요").perform()
 
-            button = driver.find_element(By.XPATH, '//*[@aria-label="저장"]')
+            button = driver.find_element(By.XPATH, '//*[contains(@aria-label, "저장")]')
             button.click()
+            time.sleep(0.5)
 
-            element = wait.until(EC.presence_of_element_located(
-    (By.CSS_SELECTOR, ".btn-secondary.cl-control.cl-button.cl-unselectable")
-))
+            element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/div/div[2]/div/div/div[2]/div/div/div/div[1]/div')))
+            # 버튼 클릭
+            element.click()
 
+            element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/div/div[2]/div/div/div[2]/div/div/div/div/div')))
             # 버튼 클릭
             element.click()
 
